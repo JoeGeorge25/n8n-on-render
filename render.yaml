@@ -1,6 +1,6 @@
  services:
   - type: web
-    name: n8n
+    name: n8n-v2
     env: docker
     plan: free
     dockerfilePath: ./Dockerfile
@@ -14,12 +14,10 @@
         value: "0.0.0.0"
       - key: N8N_SECURE_COOKIE
         value: "false"
-      - key: DB_TYPE
-        value: "postgresdb"
-      - key: DB_POSTGRESDB_SCHEMA
-        value: "public"
-      - key: DB_POSTGRESDB_SSL
-        value: "false"
+#  ⬆️  Notice: NO DB_* vars and NO `databases:` section.
+#  n8n will boot with its default SQLite so the service can come up.
+
+      
 
 
  
