@@ -1,4 +1,4 @@
-services:
+ services:
   - type: web
     name: n8n
     env: docker
@@ -11,16 +11,6 @@ services:
         value: https
       - key: N8N_HOST
         value: 0.0.0.0
-      - key: WEBHOOK_URL
-        fromService:
-          type: web
-          name: n8n
-          property: url
-      - key: N8N_EDITOR_BASE_URL
-        fromService:
-          type: web
-          name: n8n
-          property: url
       - key: N8N_SECURE_COOKIE
         value: "false"
       - key: DB_TYPE
