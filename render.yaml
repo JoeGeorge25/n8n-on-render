@@ -1,12 +1,8 @@
-databases:
-  - name: teamdesk-postgres
-    plan: starter
-
-services:
+ services:
   - name: n8n
     type: web
     env: docker
-    plan: starter
+    plan: starter            # disk requires starter or higher
     dockerfilePath: ./Dockerfile
     autoDeploy: true
     disk:
@@ -18,8 +14,7 @@ services:
         value: /data
       - key: N8N_PROTOCOL
         value: https
-      - key: N8N_HOST
-        value: n8n-on-render.onrender.com
+      # Leave N8N_HOST unset for first boot; n8n works without it.
       - key: N8N_BASIC_AUTH_ACTIVE
         value: "true"
       - key: N8N_BASIC_AUTH_USER
@@ -28,26 +23,7 @@ services:
         generateValue: true
       - key: N8N_ENCRYPTION_KEY
         generateValue: true
-
-      # n8n DB (Render Postgres) — include SSL!
-      - key: DB_TYPE
-        value: postgresdb
-      - key: DB_POSTGRESDB_HOST
-        fromDatabase: { name: teamdesk-postgres, property: host }
-      - key: DB_POSTGRESDB_PORT
-        fromDatabase: { name: teamdesk-postgres, property: port }
-      - key: DB_POSTGRESDB_DATABASE
-        fromDatabase: { name: teamdesk-postgres, property: database }
-      - key: DB_POSTGRESDB_USER
-        fromDatabase: { name: teamdesk-postgres, property: user }
-      - key: DB_POSTGRESDB_PASSWORD
-        fromDatabase: { name: teamdesk-postgres, property: password }
-      - key: DB_POSTGRESDB_SCHEMA
-        value: public
-      - key: DB_POSTGRESDB_SSL
-        value: "true"
-
-
+ 
 
  
  
