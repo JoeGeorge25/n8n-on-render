@@ -2,7 +2,7 @@
   - name: n8n
     type: web
     env: docker
-    plan: starter            # disk requires starter or higher
+    plan: starter
     dockerfilePath: ./Dockerfile
     autoDeploy: true
     disk:
@@ -14,7 +14,9 @@
         value: /data
       - key: N8N_PROTOCOL
         value: https
-      # Leave N8N_HOST unset for first boot; n8n works without it.
+      # optional for first boot; you can set it later to your exact Render host
+      # - key: N8N_HOST
+      #   value: n8n-on-render.onrender.com
       - key: N8N_BASIC_AUTH_ACTIVE
         value: "true"
       - key: N8N_BASIC_AUTH_USER
@@ -24,6 +26,7 @@
       - key: N8N_ENCRYPTION_KEY
         generateValue: true
  
+      
 
  
  
