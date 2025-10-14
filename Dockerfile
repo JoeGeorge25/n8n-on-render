@@ -1,17 +1,24 @@
+ # Dockerfile (safe/minimal)
 FROM n8nio/n8n:latest
 
+# Work as root only while copying files
 USER root
-RUN apt-get update && apt-get install -y jq curl && rm -rf /var/lib/apt/lists/*
 
-# include workflows in the image (must exist in the repo)
+# Ensure target dirs exist
 RUN mkdir -p /workflows
+
+# Copy workflows (must exist in the repo; keep at least one file inside)
 COPY n8n/workflows/ /workflows/
 
-# n8n data will live on Render disk mounted at /data
+# Copy entrypoint and make it executable
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+# Persist n8n user data on Render disk (set in render.yaml)
 ENV N8N_USER_FOLDER=/data
 
+# Drop privileges back to node (n8n image default)
 USER node
-# import workflows at runtime, then start n8n
-CMD ["sh","-lc","n8n import:workflow --input=/workflows --separate || true; n8n start"]
 
- 
+# Start through our tiny wrapper
+ENTRYPOINT ["/docker-entrypoint.sh"]
