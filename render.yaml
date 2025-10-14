@@ -14,9 +14,6 @@
         value: /data
       - key: N8N_PROTOCOL
         value: https
-      # optional for first boot; you can set it later to your exact Render host
-      # - key: N8N_HOST
-      #   value: n8n-on-render.onrender.com
       - key: N8N_BASIC_AUTH_ACTIVE
         value: "true"
       - key: N8N_BASIC_AUTH_USER
@@ -25,8 +22,3 @@
         generateValue: true
       - key: N8N_ENCRYPTION_KEY
         generateValue: true
- 
-      
-
- 
- 
