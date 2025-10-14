@@ -1,0 +1,50 @@
+{
+  "name": "Dashboard - Event Logger",
+  "nodes": [
+    {
+      "id": "webhook_dash",
+      "name": "Dash Event (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dash-event",
+        "responseMode": "onReceived",
+        "responseData": "={{ { ok: true } }}"
+      },
+      "position": [200, 200]
+    },
+    {
+      "id": "normalize",
+      "name": "Normalize",
+      "type": "n8n-nodes-base.set",
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            { "name": "source", "value": "={{$json.source || 'Settings'}}" },
+            { "name": "type", "value": "={{$json.type || 'TEST'}}" }
+          ],
+          "json": [
+            { "name": "payload", "value": "={{$json}}" }
+          ]
+        }
+      },
+      "position": [460, 200]
+    },
+    {
+      "id": "pg_insert",
+      "name": "Insert Event",
+      "type": "n8n-nodes-base.postgres",
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO dashboard_events (source, type, payload) VALUES ({{$json.source}}, {{$json.type}}, {{$json.payload}}::jsonb);"
+      },
+      "position": [720, 200],
+      "credentials": { "postgres": { "name": "Render Postgres" } }
+    }
+  ],
+  "connections": {
+    "Dash Event (Webhook)": { "main": [[{ "node": "Normalize", "type": "main", "index": 0 }]] },
+    "Normalize": { "main": [[{ "node": "Insert Event", "type": "main", "index": 0 }]] }
+  }
+}
