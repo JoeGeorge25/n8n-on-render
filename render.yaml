@@ -2,10 +2,35 @@
   - type: web
     name: n8n
     env: docker
-    # ... (plan, healthCheckPath, disk, etc.)
+    plan: free
+    autoDeploy: true
+    dockerfilePath: ./Dockerfile
     envVars:
+      - key: N8N_PORT
+        value: 5678
+      - key: N8N_PROTOCOL
+        value: https
+      - key: N8N_EDITOR_BASE_URL
+        fromService:
+          type: web
+          name: n8n
+          property: url
+      - key: WEBHOOK_URL         # public HTTPS URL n8n should use for webhooks
+        fromService:
+          type: web
+          name: n8n
+          property: url
+      - key: N8N_HOST
+        value: 0.0.0.0
+      - key: N8N_SECURE_COOKIE
+        value: "false"
+      - key: N8N_DIAGNOSTICS_ENABLED
+        value: "false"
+      - key: EXECUTIONS_MODE
+        value: regular
+      # Database (filled automatically from the db below)
       - key: DB_TYPE
-        value: postgres
+        value: postgresdb
       - key: DB_POSTGRESDB_HOST
         fromDatabase:
           name: n8n-postgres
@@ -28,5 +53,12 @@
           property: password
       - key: DB_POSTGRESDB_SCHEMA
         value: public
-    databases:
-      - name: n8n-postgres
+      - key: DB_POSTGRESDB_SSL
+        value: "false"
+      # 🔐 Set this in the dashboard after deploy (don’t commit):
+      # - key: N8N_ENCRYPTION_KEY
+      #   generateValue: true
+
+databases:
+  - name: n8n-postgres
+    plan: free
