@@ -1,13 +1,22 @@
- FROM n8nio/n8n:latest
+# Use official n8n image
+FROM n8nio/n8n:latest
 
+# Become root to add scripts/files
 USER root
-RUN mkdir -p /workflows
-COPY n8n/workflows/ /workflows/
+
+# Create a place for optional seed workflows
+RUN mkdir -p /workflows && chown -R node:node /workflows
+
+# Add our entrypoint wrapper (to optionally auto-import workflows)
 COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh && chown node:node /docker-entrypoint.sh
 
-# normalize Windows line endings and make executable
-RUN sed -i 's/\r$//' /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh
-
-ENV N8N_USER_FOLDER=/data
+# Switch back to node (n8n runs as node user)
 USER node
+
+# Default folders n8n expects:
+# /data will be your Render persistent disk mount
+ENV N8N_USER_FOLDER=/data
+
+# Start via our wrapper (which then execs the standard n8n entrypoint)
 ENTRYPOINT ["/docker-entrypoint.sh"]
