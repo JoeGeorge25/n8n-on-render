@@ -2,9 +2,14 @@
   - type: web
     name: n8n
     env: docker
-    plan: free
+    plan: starter
     autoDeploy: true
     dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    disk:
+      name: n8n-data
+      mountPath: /data
+      sizeGB: 5
     envVars:
       - key: N8N_PORT
         value: 5678
@@ -28,6 +33,8 @@
         value: "false"
       - key: EXECUTIONS_MODE
         value: regular
+
+      # DB OPTION 1: PostgreSQL (recommended)
       - key: DB_TYPE
         value: postgres
       - key: DB_POSTGRESDB_HOST
@@ -54,6 +61,10 @@
         value: public
       - key: DB_POSTGRESDB_SSL
         value: "false"
+
+      # Security (set in dashboard the first time and keep it forever)
+      - key: N8N_ENCRYPTION_KEY
+        generateValue: true
 
 databases:
   - name: n8n-postgres
