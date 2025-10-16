@@ -1,24 +1,83 @@
- services:
-  - name: n8n
-    type: web
+  services:
+  - type: web
+    name: n8n
     env: docker
-    plan: starter
-    dockerfilePath: ./Dockerfile
+    plan: starter        # use free or starter as you prefer
     autoDeploy: true
+    healthCheckPath: /healthz
+    # If you want a custom region, uncomment:
+    # region: oregon
     disk:
       name: n8n-data
       mountPath: /data
-      sizeGB: 2
+      sizeGB: 5          # increase if you store large attachments/logs
     envVars:
-      - key: N8N_USER_FOLDER
-        value: /data
+      # REQUIRED BASE
+      - key: N8N_HOST
+        value: n8n.onrender.com               # Render will replace with your service’s host later (safe placeholder)
+      - key: N8N_PORT
+        value: "5678"
       - key: N8N_PROTOCOL
         value: https
+      - key: WEBHOOK_URL
+        value: https://n8n.onrender.com/      # IMPORTANT: set to your actual Render URL after first deploy
+      - key: N8N_EDITOR_BASE_URL
+        value: https://n8n.onrender.com/
+      - key: VUE_APP_URL_BASE_API
+        value: https://n8n.onrender.com/
+      - key: N8N_ENCRYPTION_KEY
+        generateValue: true                   # Render will generate a random secret for you (don’t change later!)
+
+      # AUTH (recommended)
       - key: N8N_BASIC_AUTH_ACTIVE
         value: "true"
       - key: N8N_BASIC_AUTH_USER
-        value: admin
+        sync: false                           # set in dashboard
       - key: N8N_BASIC_AUTH_PASSWORD
-        generateValue: true
-      - key: N8N_ENCRYPTION_KEY
-        generateValue: true
+        sync: false                           # set in dashboard
+
+      # LOGGING / TIMEZONE
+      - key: N8N_LOG_LEVEL
+        value: info
+      - key: GENERIC_TIMEZONE
+        value: America/Edmonton               # your TZ
+
+      # OPTIONAL: AUTO-IMPORT SEED WORKFLOWS FROM /workflows
+      - key: AUTO_IMPORT_WORKFLOWS
+        value: "true"
+      - key: IMPORT_OVERWRITE
+        value: "false"
+
+      # EXECUTION MODE (leave REGULAR to keep it simple/cheap)
+      - key: EXECUTIONS_MODE
+        value: regular
+
+      # If using SQLite (default), nothing else needed.
+      # If you later switch to Postgres, add the block below and remove SQLite comment:
+
+      # - key: DB_TYPE
+      #   value: postgres
+      # - key: DB_POSTGRESDB_HOST
+      #   fromDatabase:
+      #     name: n8n-postgres
+      #     property: host
+      # - key: DB_POSTGRESDB_PORT
+      #   fromDatabase:
+      #     name: n8n-postgres
+      #     property: port
+      # - key: DB_POSTGRESDB_DATABASE
+      #   fromDatabase:
+      #     name: n8n-postgres
+      #     property: database
+      # - key: DB_POSTGRESDB_USER
+      #   fromDatabase:
+      #     name: n8n-postgres
+      #     property: user
+      # - key: DB_POSTGRESDB_PASSWORD
+      #   fromDatabase:
+      #     name: n8n-postgres
+      #     property: password
+
+    # If you want a managed Postgres later, uncomment this:
+    # databases:
+    #   - name: n8n-postgres
