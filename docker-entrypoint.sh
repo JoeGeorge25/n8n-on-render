@@ -1,12 +1,12 @@
  #!/bin/sh
 set -e
 
-echo "Starting n8n with auto-import from /workflows..."
+echo "✅ Starting n8n container..."
 
-# Import any .json files if present (ignore if folder empty)
 if [ -d "/workflows" ]; then
+  echo "📁 Importing workflows..."
   n8n import:workflow --input=/workflows --separate || true
 fi
 
-# Start n8n
+echo "🚀 Launching n8n..."
 exec n8n start
