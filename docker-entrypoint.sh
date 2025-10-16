@@ -1,12 +1,16 @@
- #!/bin/sh
+#!/bin/sh
 set -e
 
-echo "✅ Starting n8n container..."
+MARKER="/data/.workflows_imported"
 
-if [ -d "/workflows" ]; then
-  echo "📁 Importing workflows..."
+echo "✅ starting n8n..."
+
+# import seed workflows exactly once (safe on restarts/redeploys)
+if [ -d "/workflows" ] && [ ! -f "$MARKER" ]; then
+  echo "📁 importing seed workflows from /workflows ..."
   n8n import:workflow --input=/workflows --separate || true
+  touch "$MARKER"
 fi
 
-echo "🚀 Launching n8n..."
+echo "🚀 launching n8n..."
 exec n8n start
