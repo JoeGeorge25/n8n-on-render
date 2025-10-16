@@ -1,50 +1,74 @@
-{
+ {
   "name": "Dashboard - Event Logger",
+  "active": false,
+  "settings": {},
+  "pinData": {},
   "nodes": [
     {
       "id": "webhook_dash",
       "name": "Dash Event (Webhook)",
       "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 200],
       "parameters": {
         "httpMethod": "POST",
         "path": "dash-event",
         "responseMode": "onReceived",
-        "responseData": "={{ { ok: true } }}"
-      },
-      "position": [200, 200]
+        "options": {
+          "responseCode": 200
+        }
+      }
     },
     {
       "id": "normalize",
       "name": "Normalize",
       "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [460, 200],
       "parameters": {
         "keepOnlySet": true,
         "values": {
           "string": [
             { "name": "source", "value": "={{$json.source || 'Settings'}}" },
-            { "name": "type", "value": "={{$json.type || 'TEST'}}" }
+            { "name": "type",   "value": "={{$json.type   || 'TEST'}}" }
           ],
           "json": [
             { "name": "payload", "value": "={{$json}}" }
           ]
         }
-      },
-      "position": [460, 200]
+      }
     },
     {
       "id": "pg_insert",
       "name": "Insert Event",
       "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [720, 200],
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO dashboard_events (source, type, payload) VALUES ({{$json.source}}, {{$json.type}}, {{$json.payload}}::jsonb);"
+        "query": "INSERT INTO dashboard_events (source, type, payload) VALUES ('{{$json.source}}', '{{$json.type}}', '{{$json.payload}}'::jsonb);"
       },
-      "position": [720, 200],
-      "credentials": { "postgres": { "name": "Render Postgres" } }
+      "credentials": {
+        "postgres": {
+          "name": "Render Postgres"
+        }
+      }
     }
   ],
   "connections": {
-    "Dash Event (Webhook)": { "main": [[{ "node": "Normalize", "type": "main", "index": 0 }]] },
-    "Normalize": { "main": [[{ "node": "Insert Event", "type": "main", "index": 0 }]] }
+    "Dash Event (Webhook)": {
+      "main": [
+        [
+          { "node": "Normalize", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Normalize": {
+      "main": [
+        [
+          { "node": "Insert Event", "type": "main", "index": 0 }
+        ]
+      ]
+    }
   }
 }
