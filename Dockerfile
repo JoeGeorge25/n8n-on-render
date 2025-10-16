@@ -1,14 +1,3 @@
-#!/bin/sh
-set -e
-
-echo "✅ Starting n8n container..."
-
-# Optional: import workflows if the folder exists
-if [ -d "/workflows" ]; then
-  echo "📁 Importing workflows..."
-  n8n import:workflow --input=/workflows --separate || true
-fi
-
-echo "🚀 Launching n8n..."
-exec n8n start
- 
+ FROM n8nio/n8n:latest
+# Render sets $PORT; n8n listens on 5678 by default.
+# No extra steps needed—image already binds to 0.0.0.0
