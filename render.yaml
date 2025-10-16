@@ -61,4 +61,4 @@
 
 databases:
   - name: n8n-postgres
-    plan: free
+    plan: starter
