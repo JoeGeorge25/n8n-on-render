@@ -9,7 +9,7 @@
     disk:
       name: n8n-data
       mountPath: /data
-      sizeGB: 5
+      sizeGB:10
     envVars:
       - key: N8N_PORT
         value: 5678
