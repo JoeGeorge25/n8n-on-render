@@ -1,16 +1,14 @@
-FROM n8nio/n8n:latest
+#!/bin/sh
+set -e
 
-USER root
-RUN mkdir -p /workflows
-COPY n8n/workflows/ /workflows/
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+echo "✅ Starting n8n container..."
 
-# n8n stores user data here; mount a disk later if you upgrade plan
-ENV N8N_USER_FOLDER=/data
+# Optional: import workflows if the folder exists
+if [ -d "/workflows" ]; then
+  echo "📁 Importing workflows..."
+  n8n import:workflow --input=/workflows --separate || true
+fi
 
-USER node
-ENTRYPOINT ["/docker-entrypoint.sh"]
- 
-
+echo "🚀 Launching n8n..."
+exec n8n start
  
