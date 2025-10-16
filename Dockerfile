@@ -1,13 +1,16 @@
-FROM n8nio/n8n:latest
+ FROM n8nio/n8n:latest
 
-# (Optional) include seed workflows; they won’t run unless you import in the UI
 USER root
+# seed folder (optional, but we’ll import from it on first boot)
 RUN mkdir -p /workflows && chown -R node:node /workflows
 COPY n8n/workflows/ /workflows/
 
-# n8n uses /data for persistent files if/when you attach a disk later
+# entrypoint wrapper for one-time import
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+# n8n user data path (works with a mounted disk at /data)
 ENV N8N_USER_FOLDER=/data
 
-# Use the image’s default entrypoint (starts n8n)
 USER node
-# Do not set ENTRYPOINT or CMD; base image already runs: n8n start
+ENTRYPOINT ["/docker-entrypoint.sh"]
