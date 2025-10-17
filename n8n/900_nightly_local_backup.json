@@ -1,0 +1,54 @@
+{
+  "name": "Nightly Local Backup (/data/backups)",
+  "active": true,
+  "settings": {},
+  "nodes": [
+    {
+      "id": "cron_nightly",
+      "name": "Every Night 03:00",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [200, 200],
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyDay",
+              "hour": 3,
+              "minute": 0
+            }
+          ]
+        },
+        "timezone": "America/Edmonton"
+      }
+    },
+    {
+      "id": "exec_backup",
+      "name": "Export Workflows + Credentials",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 2,
+      "position": [520, 200],
+      "parameters": {
+        "command": "sh",
+        "arguments": "-lc \"mkdir -p /data/backups && STAMP=$(date +\\\"%Y-%m-%d_%H-%M-%S\\\") && BACKUP_DIR=\\\"/data/backups/$STAMP\\\" && mkdir -p \\\"$BACKUP_DIR/workflows\\\" \\\"$BACKUP_DIR/credentials\\\" && n8n export:workflow --all --separate --pretty --output=\\\"$BACKUP_DIR/workflows\\\" && n8n export:credentials --all --output=\\\"$BACKUP_DIR/credentials/credentials.json\\\" && find /data/backups -maxdepth 1 -type d -mtime +14 -exec rm -rf {} \\; || true && echo \\\"Backup complete: $BACKUP_DIR\\\"\"",
+        "options": {
+          "shell": "sh",
+          "continueOnFail": true
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every Night 03:00": {
+      "main": [
+        [
+          {
+            "node": "Export Workflows + Credentials",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
