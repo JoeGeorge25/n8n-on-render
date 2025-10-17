@@ -1,0 +1,133 @@
+{
+  "name": "Nightly Backup + GitHub Upload",
+  "active": true,
+  "settings": {},
+  "nodes": [
+    {
+      "id": "cron_nightly",
+      "name": "Every Night 03:00",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [200, 200],
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyDay",
+              "hour": 3,
+              "minute": 0
+            }
+          ]
+        },
+        "timezone": "America/Edmonton"
+      }
+    },
+    {
+      "id": "exec_backup",
+      "name": "Export Workflows + Credentials",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 2,
+      "position": [520, 200],
+      "parameters": {
+        "command": "sh",
+        "arguments": "-lc \"mkdir -p /data/backups && STAMP=$(date +\\\"%Y-%m-%d_%H-%M-%S\\\") && BACKUP_DIR=\\\"/data/backups/$STAMP\\\" && mkdir -p \\\"$BACKUP_DIR/workflows\\\" \\\"$BACKUP_DIR/credentials\\\" && n8n export:workflow --all --separate --pretty --output=\\\"$BACKUP_DIR/workflows\\\" && n8n export:credentials --all --output=\\\"$BACKUP_DIR/credentials/credentials.json\\\" && find /data/backups -maxdepth 1 -type d -mtime +14 -exec rm -rf {} \\; || true && echo \\\"$BACKUP_DIR\\\"\"",
+        "options": {
+          "shell": "sh",
+          "continueOnFail": true
+        }
+      }
+    },
+    {
+      "id": "exec_pack",
+      "name": "Tar .tar.gz",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 2,
+      "position": [820, 200],
+      "parameters": {
+        "command": "sh",
+        "arguments": "-lc \"STAMP_DIR=$(tail -n 1 | tr -d '\\r') && cd /data/backups && NAME=$(basename \\\"$STAMP_DIR\\\") && tar -czf \\\"${NAME}.tar.gz\\\" \\\"$NAME\\\" && echo /data/backups/${NAME}.tar.gz\"",
+        "options": {
+          "shell": "sh",
+          "continueOnFail": false,
+          "input": "all"
+        }
+      }
+    },
+    {
+      "id": "read_binary",
+      "name": "Read .tar.gz",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [1080, 200],
+      "parameters": {
+        "filePath": "={{$json[\"stdout\"].trim()}}",
+        "binaryPropertyName": "data"
+      }
+    },
+    {
+      "id": "http_put_github",
+      "name": "Upload to GitHub",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1360, 200],
+      "parameters": {
+        "authentication": "none",
+        "requestMethod": "PUT",
+        "url": "={{\"https://api.github.com/repos/\" + $env.GITHUB_OWNER + \"/\" + $env.GITHUB_REPO + \"/contents/backups/\" + $now.toFormat('yyyy-LL-dd') + \"/\" + $now.toFormat('HH-mm-ss') + \".tar.gz\"}}",
+        "options": {
+          "ignoreResponseCode": true
+        },
+        "jsonParameters": true,
+        "sendBinaryData": false,
+        "headerParametersJson": "={\"Authorization\":\"Bearer \" + $env.GITHUB_TOKEN, \"Content-Type\":\"application/json\"}",
+        "bodyParametersJson": "={\"message\":\"n8n backup \" + $now.toISO(), \"branch\": $env.GITHUB_BRANCH, \"content\": $binary.data.data.toString('base64')}"
+      }
+    }
+  ],
+  "connections": {
+    "Every Night 03:00": {
+      "main": [
+        [
+          {
+            "node": "Export Workflows + Credentials",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Export Workflows + Credentials": {
+      "main": [
+        [
+          {
+            "node": "Tar .tar.gz",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tar .tar.gz": {
+      "main": [
+        [
+          {
+            "node": "Read .tar.gz",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read .tar.gz": {
+      "main": [
+        [
+          {
+            "node": "Upload to GitHub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
