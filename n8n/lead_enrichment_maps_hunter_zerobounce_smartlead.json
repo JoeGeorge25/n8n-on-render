@@ -1,0 +1,193 @@
+{
+  "name": "Maps → Hunter → ZeroBounce → Smartlead",
+  "active": true,
+  "nodes": [
+    {
+      "id": "manual",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 240]
+    },
+    {
+      "id": "config",
+      "name": "Config (keywords/locations)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [420, 240],
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            { "name": "keyword", "value": "chiropractor" },
+            { "name": "location", "value": "Austin, TX" }
+          ],
+          "number": [
+            { "name": "maxResults", "value": 15 }
+          ]
+        }
+      }
+    },
+    {
+      "id": "serp",
+      "name": "Google Maps (SerpAPI)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [660, 240],
+      "parameters": {
+        "url": "https://serpapi.com/search.json",
+        "options": {
+          "timeout": 60000
+        },
+        "queryParametersUi": {
+          "parameter": [
+            { "name": "engine", "value": "google_maps" },
+            { "name": "type", "value": "search" },
+            { "name": "api_key", "value": "={{$env.SERP_API_KEY}}" },
+            { "name": "q", "value": "={{$json.keyword + ' in ' + $json.location}}" },
+            { "name": "hl", "value": "en" }
+          ]
+        },
+        "responseFormat": "json"
+      }
+    },
+    {
+      "id": "extractDomains",
+      "name": "Extract Websites → Domains",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [900, 240],
+      "parameters": {
+        "functionCode": "const out = [];\nconst results = (items[0].json.local_results || items[0].json.local_results || items[0].json.results || []);\nconst max = $item(0).$node[\"Config (keywords/locations)\"].json.maxResults || 15;\nfor (const r of results.slice(0, max)) {\n  const website = r.website || r.link || (r.source && r.source.link) || '';\n  if (!website) continue;\n  try {\n    const u = new URL(website.startsWith('http') ? website : 'https://' + website);\n    const domain = u.hostname.replace(/^www\\./,'');\n    out.push({ json: { company: r.title || r.name || r.address, website, domain } });\n  } catch (e) {}\n}\nreturn out;"
+      }
+    },
+    {
+      "id": "hunter",
+      "name": "Hunter Domain Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1140, 240],
+      "parameters": {
+        "url": "https://api.hunter.io/v2/domain-search",
+        "responseFormat": "json",
+        "queryParametersUi": {
+          "parameter": [
+            { "name": "domain", "value": "={{$json.domain}}" },
+            { "name": "api_key", "value": "={{$env.HUNTER_API_KEY}}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "flattenEmails",
+      "name": "Flatten Emails",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [1380, 240],
+      "parameters": {
+        "functionCode": "const company = $item(0).$node[\"Extract Websites → Domains\"].json.company;\nconst website = $item(0).$node[\"Extract Websites → Domains\"].json.website;\nconst emails = (items[0].json.data && items[0].json.data.emails) || [];\nreturn emails.map(e => ({ json: {\n  email: e.value,\n  first_name: e.first_name || '',\n  last_name: e.last_name || '',\n  position: e.position || '',\n  company, website\n}}));"
+      }
+    },
+    {
+      "id": "zerobounce",
+      "name": "ZeroBounce Validate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1620, 240],
+      "parameters": {
+        "url": "https://api.zerobounce.net/v2/validate",
+        "responseFormat": "json",
+        "options": { "timeout": 60000 },
+        "queryParametersUi": {
+          "parameter": [
+            { "name": "api_key", "value": "={{$env.ZERObounce_API_KEY}}" },
+            { "name": "email", "value": "={{$json.email}}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "onlyValid",
+      "name": "IF Valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1860, 240],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            { "value1": "={{ $json.status && $json.status.toLowerCase() === 'valid' }}", "operation": "isTrue" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "prepLead",
+      "name": "Prep Lead JSON",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [2100, 140],
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "json": [
+            {
+              "name": "body",
+              "value": "={{ { email: $json.email, first_name: $json.first_name, last_name: $json.last_name, company: $json.company, website: $json.website } }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "smartlead",
+      "name": "Smartlead: Add Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [2340, 140],
+      "parameters": {
+        "url": "={{ 'https://server.smartlead.ai/api/v1/campaigns/' + $env.SMARTLEAD_CAMPAIGN_ID + '/leads' }}",
+        "authentication": "none",
+        "options": { "timeout": 60000 },
+        "responseFormat": "json",
+        "jsonParameters": true,
+        "sendBody": true,
+        "headerParametersUi": {
+          "parameter": [
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.SMARTLEAD_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "bodyParametersJson": "={{$json.body}}"
+      }
+    },
+    {
+      "id": "log",
+      "name": "Log Result",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [2580, 140],
+      "parameters": {
+        "functionCode": "console.log('Pushed to Smartlead:', items[0].json);\nreturn items;"
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": { "main": [[{ "node": "Config (keywords/locations)", "type": "main", "index": 0 }]] },
+    "Config (keywords/locations)": { "main": [[{ "node": "Google Maps (SerpAPI)", "type": "main", "index": 0 }]] },
+    "Google Maps (SerpAPI)": { "main": [[{ "node": "Extract Websites → Domains", "type": "main", "index": 0 }]] },
+    "Extract Websites → Domains": { "main": [[{ "node": "Hunter Domain Search", "type": "main", "index": 0 }]] },
+    "Hunter Domain Search": { "main": [[{ "node": "Flatten Emails", "type": "main", "index": 0 }]] },
+    "Flatten Emails": { "main": [[{ "node": "ZeroBounce Validate", "type": "main", "index": 0 }]] },
+    "ZeroBounce Validate": { "main": [[{ "node": "IF Valid", "type": "main", "index": 0 }]] },
+    "IF Valid": {
+      "main": [
+        [
+          { "node": "Prep Lead JSON", "type": "main", "index": 0 }
+        ],
+        []
+      ]
+    },
+    "Prep Lead JSON": { "main": [[{ "node": "Smartlead: Add Lead", "type": "main", "index": 0 }]] },
+    "Smartlead: Add Lead": { "main": [[{ "node": "Log Result", "type": "main", "index": 0 }]] }
+  }
+}
